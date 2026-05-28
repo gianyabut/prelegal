@@ -66,11 +66,12 @@ export function resolveStandardTerms(data: NDAFormData): string {
   const governingLaw = data.governingLaw || '[Governing Law]';
   const jurisdiction = data.jurisdiction || '[Jurisdiction]';
 
+  // Use replacer functions to prevent $& / $1 injection from user input corrupting the output
   return STANDARD_TERMS_TEMPLATE
-    .replace(/\{\{Purpose\}\}/g, purpose)
-    .replace(/\{\{Effective Date\}\}/g, effectiveDate)
-    .replace(/\{\{MNDA Term\}\}/g, mndaTerm)
-    .replace(/\{\{Term of Confidentiality\}\}/g, confidentialityTerm)
-    .replace(/\{\{Governing Law\}\}/g, governingLaw)
-    .replace(/\{\{Jurisdiction\}\}/g, jurisdiction);
+    .replace(/\{\{Purpose\}\}/g, () => purpose)
+    .replace(/\{\{Effective Date\}\}/g, () => effectiveDate)
+    .replace(/\{\{MNDA Term\}\}/g, () => mndaTerm)
+    .replace(/\{\{Term of Confidentiality\}\}/g, () => confidentialityTerm)
+    .replace(/\{\{Governing Law\}\}/g, () => governingLaw)
+    .replace(/\{\{Jurisdiction\}\}/g, () => jurisdiction);
 }
