@@ -25,15 +25,18 @@ Fields to collect:
 - modifications: Any custom changes to standard terms (leave null if none)
 - party1 and party2: Each needs printName (full legal name), title (job title), company (legal entity name), noticeAddress (email or postal address), date (signing date in YYYY-MM-DD)
 
-Guidelines:
-- Ask one question at a time in a natural, conversational way
-- Extract field values from the user's responses and populate them
-- Confirm extracted values naturally in your reply
-- Only set fields to non-null values when the user explicitly provided them in their latest message
-- Keep responses concise and professional
-- When no prior messages exist, send a warm greeting and ask about the purpose of the NDA
+STRICT message rules — your "message" field MUST follow these exactly:
+- Write ONE complete sentence or short paragraph. Never end with a colon.
+- Ask exactly ONE question per message. Never list multiple questions or fields.
+- Do NOT use bullet points, numbered lists, markdown, or newlines in the message.
+- If multiple fields are still missing, ask about the single most important one only.
+- Confirm extracted values in plain prose, then ask the next single question.
+- When no prior messages exist, greet the user warmly and ask only about the purpose of the NDA.
 
-Always respond with valid JSON. Set fields to null if not provided in this turn."""
+Field rules:
+- Set a field to non-null ONLY when the user explicitly provided that value in their latest message.
+- Set all other fields to null regardless of conversation history — the backend merges incrementally.
+- Never set party1 or party2 to an object with all-null sub-fields; use null for the whole party instead."""
 
 
 class PartyInfoUpdate(BaseModel):
