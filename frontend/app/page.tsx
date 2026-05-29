@@ -1,75 +1,140 @@
-import Link from 'next/link';
+'use client';
 
-export default function Home() {
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    router.push('/dashboard');
+  }
+
   return (
-    <div className="min-h-screen flex flex-col prelegal-landing">
+    <div style={{
+      minHeight: '100vh',
+      background: '#032147',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'var(--font-sans, system-ui, sans-serif)',
+      padding: '1.5rem',
+    }}>
 
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-8 md:px-14 py-6 print:hidden nav-bar">
-        <span className="font-display font-light tracking-[0.18em] uppercase text-sm brand-wordmark">
+      <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+        <span style={{
+          fontFamily: 'var(--font-display, serif)',
+          fontWeight: 300,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          fontSize: '1.5rem',
+          color: '#ecad0a',
+        }}>
           Prelegal
         </span>
-        <Link href="/create" className="text-xs tracking-[0.15em] uppercase nav-link">
-          Open Tool →
-        </Link>
-      </nav>
-
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-8 md:px-14 text-center">
-
-        <p className="animate-fade-up category-label text-[10px] font-sans font-medium uppercase tracking-[0.35em] mb-8">
-          Legal Documents
+        <p style={{
+          marginTop: '0.5rem',
+          fontSize: '0.875rem',
+          color: 'rgba(255,255,255,0.5)',
+          letterSpacing: '0.04em',
+        }}>
+          Legal document drafting platform
         </p>
+      </div>
 
-        <h1 className="animate-fade-up animate-delay-1 font-display font-light hero-heading mb-8">
-          Mutual
-          <br />
-          <em className="hero-heading-em">Non&#8209;Disclosure</em>
-          <br />
-          Agreement
+      <div style={{
+        width: '100%',
+        maxWidth: '400px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '0.5rem',
+        padding: '2.5rem',
+      }}>
+        <h1 style={{
+          color: '#ffffff',
+          fontSize: '1.25rem',
+          fontWeight: 500,
+          marginBottom: '1.75rem',
+          letterSpacing: '0.01em',
+        }}>
+          Sign in to your account
         </h1>
 
-        <div className="animate-fade-up animate-delay-2 gold-rule w-12 mb-8" />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.04em' }}>
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.25rem',
+                padding: '0.65rem 0.875rem',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
 
-        <p className="animate-fade-up animate-delay-2 hero-description font-sans font-light leading-relaxed mb-12 max-w-md">
-          Generate professionally formatted Mutual NDAs in minutes.
-          Fill in the key details, preview the live document, and
-          download a print-ready PDF — all in your browser.
-        </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.04em' }}>
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.25rem',
+                padding: '0.65rem 0.875rem',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
 
-        <div className="animate-fade-up animate-delay-3">
-          <Link href="/create" className="cta-button text-xs tracking-[0.25em] uppercase font-medium px-10 py-4 inline-block">
-            Draft Your NDA
-          </Link>
-        </div>
-
-        <div className="animate-fade-up animate-delay-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-16 feature-chips">
-          {['Common Paper MNDA v1.0', 'CC BY 4.0', 'No account required', 'Download as PDF'].map(
-            (f, i) => (
-              <span key={f} className="flex items-center gap-1.5 text-[0.75rem]">
-                {i > 0 && <span className="hidden sm:inline gold-dot">·</span>}
-                {f}
-              </span>
-            )
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="px-8 md:px-14 py-5 text-center footer-bar">
-        <p className="text-xs footer-text">
-          Built on the{' '}
-          <a
-            href="https://commonpaper.com/standards/mutual-nda/1.0"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="footer-link"
+          <button
+            type="submit"
+            style={{
+              marginTop: '0.5rem',
+              background: '#753991',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '0.25rem',
+              padding: '0.75rem 1.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              width: '100%',
+            }}
           >
-            Common Paper
-          </a>{' '}
-          open standard.
-        </p>
-      </footer>
+            Sign In
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 }
