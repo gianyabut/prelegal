@@ -8,7 +8,7 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-The current implementation has the Mutual NDA creator (client-side form + live preview + PDF print). A fake login page and dashboard scaffold are in place; real auth, AI chat, and document persistence are not yet implemented.
+The current implementation has the Mutual NDA creator with AI chat + live preview + PDF print. A fake login page and dashboard scaffold are in place; real auth and document persistence are not yet implemented.
 
 ## Development process
 
@@ -57,7 +57,7 @@ Backend available at http://localhost:8000
 ## Implementation Status
 
 ### Done
-- **PREL-3** — Mutual NDA creator: client-side form, live preview, PDF print (`frontend/app/create/`)
+- **PREL-3** — Mutual NDA creator: live preview, PDF print (`frontend/app/create/`)
 - **PREL-4** — V1 technical foundation:
   - `backend/` — FastAPI/uv, SQLite DB with users table schema, `/api/health`, CORS
   - `docker-compose.yml` — frontend :3000 + backend :8000, `NEXT_PUBLIC_API_URL` as build arg
@@ -65,9 +65,13 @@ Backend available at http://localhost:8000
   - `frontend/app/page.tsx` — fake login page (no auth, redirects to `/dashboard`)
   - `frontend/app/dashboard/` — dashboard showing all 12 catalog document types; only Mutual NDA active
   - `scripts/` — start/stop for Mac, Linux, Windows
+- **PREL-5** — AI chat for Mutual NDA:
+  - `backend/chat.py` — `POST /api/chat`; LiteLLM/OpenRouter/Cerebras (`gpt-oss-120b`), Pydantic structured output (`NDAFieldsUpdate`), async `acompletion`, per-request directive injection via `_unfilled_fields()` so the AI always asks the next required field
+  - `frontend/components/nda-chat.tsx` — chat UI replacing the form panel: message list, typing indicator, enter-to-send, null-safe party field merge
+  - `frontend/app/create/page.tsx` — left panel is now `<NDAChat>`; `handleFieldsUpdate` deep-merges partial party objects
+  - `backend/tests/test_chat.py` — 6 integration tests (mocked LiteLLM)
 
 ### Not yet implemented
 - Real authentication (sign up / sign in against the users table)
-- AI chat for document drafting
 - Document persistence
-- Support for the 11 remaining document types beyond Mutual NDA
+- AI chat and document support for the 11 remaining document types beyond Mutual NDA
