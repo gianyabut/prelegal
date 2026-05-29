@@ -20,11 +20,21 @@ export default function CreatePage() {
   const handleFieldsUpdate = useCallback((update: NDAFieldsPartial) => {
     setFormData((prev) => {
       const { party1, party2, ...flat } = update;
+      // Strip null sub-fields before merging so the AI returning a partial
+      // party object (e.g. {printName:"X", date:null}) doesn't wipe values
+      // the user already provided for unmentioned sub-fields.
+      const mergeParty = (base: typeof prev.party1, patch: typeof party1) => {
+        if (!patch) return base;
+        const nonNull = Object.fromEntries(
+          Object.entries(patch).filter(([, v]) => v != null)
+        ) as Partial<typeof base>;
+        return { ...base, ...nonNull };
+      };
       return {
         ...prev,
         ...flat,
-        ...(party1 && { party1: { ...prev.party1, ...party1 } }),
-        ...(party2 && { party2: { ...prev.party2, ...party2 } }),
+        party1: mergeParty(prev.party1, party1),
+        party2: mergeParty(prev.party2, party2),
       };
     });
   }, []);

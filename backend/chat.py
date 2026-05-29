@@ -25,18 +25,20 @@ Fields to collect:
 - modifications: Any custom changes to standard terms (leave null if none)
 - party1 and party2: Each needs printName (full legal name), title (job title), company (legal entity name), noticeAddress (email or postal address), date (signing date in YYYY-MM-DD)
 
-STRICT message rules — your "message" field MUST follow these exactly:
-- Write ONE complete sentence or short paragraph. Never end with a colon.
+STRICT response rules:
+- Your JSON response MUST always include the "message" key. It is required and must come first.
+- "message" must be ONE complete sentence or short paragraph. Never end with a colon.
 - Ask exactly ONE question per message. Never list multiple questions or fields.
 - Do NOT use bullet points, numbered lists, markdown, or newlines in the message.
 - If multiple fields are still missing, ask about the single most important one only.
 - Confirm extracted values in plain prose, then ask the next single question.
 - When no prior messages exist, greet the user warmly and ask only about the purpose of the NDA.
 
-Field rules:
-- Set a field to non-null ONLY when the user explicitly provided that value in their latest message.
-- Set all other fields to null regardless of conversation history — the backend merges incrementally.
-- Never set party1 or party2 to an object with all-null sub-fields; use null for the whole party instead."""
+Field rules — CRITICAL, follow exactly:
+- Set a field to a non-null value ONLY if the user stated it explicitly in their LATEST message.
+- For every field not mentioned in the latest message, return null — even if it appears in the current document state. The system preserves previously-set values automatically; you must NOT echo them back.
+- For party1 and party2: if you set a party object, only include the sub-fields the user explicitly provided in this turn. Omit (set to null) every sub-field they did not mention.
+- Never return a party object where every sub-field is null; return null for the whole party instead."""
 
 
 class PartyInfoUpdate(BaseModel):
@@ -91,7 +93,16 @@ async def chat(request: ChatRequest) -> NDAFieldsUpdate:
         api_key=api_key,
     )
 
+    raw_content = response.choices[0].message.content
     try:
-        return NDAFieldsUpdate.model_validate_json(response.choices[0].message.content)
-    except (ValidationError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail=f"AI returned unparseable response: {exc}")
+        return NDAFieldsUpdate.model_validate_json(raw_content)
+    except (ValidationError, ValueError):
+        # If the AI returned valid JSON but forgot the required "message" field,
+        # inject a default rather than returning an error.
+        try:
+            raw = json.loads(raw_content)
+            if isinstance(raw, dict) and "message" not in raw:
+                raw["message"] = "Got it, I've updated the document."
+            return NDAFieldsUpdate.model_validate(raw)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"AI returned unparseable response: {exc}")
