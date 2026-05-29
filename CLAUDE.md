@@ -8,7 +8,7 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-The current implementation supports all 11 document types via AI chat with full user authentication and document persistence.
+The current implementation has the Mutual NDA creator (client-side form + live preview + PDF print). A fake login page and dashboard scaffold are in place; real auth, AI chat, and document persistence are not yet implemented.
 
 ## Development process
 
@@ -30,7 +30,7 @@ The entire project should be packaged into a Docker container.
 The backend should be in backend/ and be a uv project, using FastAPI.  
 The frontend should be in frontend/  
 The database should use SQLLite and be created from scratch each time the Docker container is brought up, allowing for a users table with sign up and sign in.  
-Consider statically building the frontend and serving it via FastAPI, if that will work.  
+The frontend and backend run as separate Docker services via docker-compose (frontend on port 3000, backend on port 8000).  
 There should be scripts in scripts/ for:  
 ```bash
 # Mac
@@ -53,3 +53,21 @@ Backend available at http://localhost:8000
 - Purple Secondary: `#753991` (submit buttons)
 - Dark Navy: `#032147` (headings)
 - Gray Text: `#888888`
+
+## Implementation Status
+
+### Done
+- **PREL-3** — Mutual NDA creator: client-side form, live preview, PDF print (`frontend/app/create/`)
+- **PREL-4** — V1 technical foundation:
+  - `backend/` — FastAPI/uv, SQLite DB with users table schema, `/api/health`, CORS
+  - `docker-compose.yml` — frontend :3000 + backend :8000, `NEXT_PUBLIC_API_URL` as build arg
+  - `frontend/Dockerfile` — multi-stage standalone build
+  - `frontend/app/page.tsx` — fake login page (no auth, redirects to `/dashboard`)
+  - `frontend/app/dashboard/` — dashboard showing all 12 catalog document types; only Mutual NDA active
+  - `scripts/` — start/stop for Mac, Linux, Windows
+
+### Not yet implemented
+- Real authentication (sign up / sign in against the users table)
+- AI chat for document drafting
+- Document persistence
+- Support for the 11 remaining document types beyond Mutual NDA
