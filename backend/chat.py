@@ -13,32 +13,50 @@ router = APIRouter()
 
 SYSTEM_PROMPT = """You are an AI legal assistant helping users draft a Mutual Non-Disclosure Agreement (NDA).
 
-Your goal is to collect all necessary information through natural conversation, then populate the NDA fields.
+Every response MUST follow this exact structure:
+1. Confirm what the user just provided in plain prose (one sentence).
+2. Then IMMEDIATELY follow with exactly what the "NEXT ACTION" directive says below — either ask that question or declare the document complete.
+Never produce a message that only confirms without doing step 2.
 
-Fields to collect:
-- purpose: Why confidential information is being shared (e.g., "Evaluating a potential acquisition")
-- effectiveDate: When the agreement starts (YYYY-MM-DD format)
-- mndaTerm: Duration of the agreement — use '1', '2', or '3' for years, or 'indefinite' for "until terminated"
-- termOfConfidentiality: How long information stays protected — use '1', '2', or '3' for years, or 'perpetual' for "forever"
-- governingLaw: US state governing the agreement (e.g., "Delaware")
-- jurisdiction: City/county for legal disputes (e.g., "New Castle, DE")
-- modifications: Any custom changes to standard terms (leave null if none)
-- party1 and party2: Each needs printName (full legal name), title (job title), company (legal entity name), noticeAddress (email or postal address), date (signing date in YYYY-MM-DD)
+STRICT message rules:
+- The "message" key is REQUIRED and must come first in your JSON.
+- Write at most 2 sentences total (confirmation + the directed next action). Never end with a colon.
+- No lists, no bullet points, no markdown, no newlines in the message.
+- If the user provides a value in the wrong format (e.g. a date not in YYYY-MM-DD), politely correct and re-ask that same field.
+- When no prior messages exist, greet the user and ask the NEXT ACTION question.
 
-STRICT response rules:
-- Your JSON response MUST always include the "message" key. It is required and must come first.
-- "message" must be ONE complete sentence or short paragraph. Never end with a colon.
-- Ask exactly ONE question per message. Never list multiple questions or fields.
-- Do NOT use bullet points, numbered lists, markdown, or newlines in the message.
-- If multiple fields are still missing, ask about the single most important one only.
-- Confirm extracted values in plain prose, then ask the next single question.
-- When no prior messages exist, greet the user warmly and ask only about the purpose of the NDA.
+Field population rules — CRITICAL:
+- Set a field to non-null ONLY if the user explicitly stated it in their LATEST message.
+- Return null for every other field; the system preserves existing values automatically.
+- For party1/party2: only populate sub-fields the user explicitly mentioned this turn; set all others to null.
+- Never return a party object where every sub-field is null — use null for the whole party instead.
+- If the user says "no modifications" or "none", set modifications to "None." so the field is non-empty."""
 
-Field rules — CRITICAL, follow exactly:
-- Set a field to a non-null value ONLY if the user stated it explicitly in their LATEST message.
-- For every field not mentioned in the latest message, return null — even if it appears in the current document state. The system preserves previously-set values automatically; you must NOT echo them back.
-- For party1 and party2: if you set a party object, only include the sub-fields the user explicitly provided in this turn. Omit (set to null) every sub-field they did not mention.
-- Never return a party object where every sub-field is null; return null for the whole party instead."""
+
+def _unfilled_fields(fields: dict) -> list[str]:
+    """Return descriptions of all unfilled required fields in conversation order."""
+    p1 = fields.get("party1") or {}
+    p2 = fields.get("party2") or {}
+    checks = [
+        (fields.get("purpose"), "purpose — why confidential information is being shared"),
+        (fields.get("effectiveDate"), "effectiveDate — start date in YYYY-MM-DD format"),
+        (fields.get("mndaTerm"), "mndaTerm — duration ('1'=1 yr, '2'=2 yrs, '3'=3 yrs, 'indefinite'=until terminated)"),
+        (fields.get("termOfConfidentiality"), "termOfConfidentiality — protection period ('1'=1 yr, '2'=2 yrs, '3'=3 yrs, 'perpetual'=forever)"),
+        (fields.get("governingLaw"), "governingLaw — US state governing the agreement"),
+        (fields.get("jurisdiction"), "jurisdiction — city/county for legal disputes"),
+        (fields.get("modifications"), "modifications — any custom changes (user may say 'none')"),
+        (p1.get("printName"), "party1.printName — full legal name of Party 1's signatory"),
+        (p1.get("title"), "party1.title — job title of Party 1's signatory"),
+        (p1.get("company"), "party1.company — legal entity name of Party 1"),
+        (p1.get("noticeAddress"), "party1.noticeAddress — contact address for Party 1"),
+        (p1.get("date"), "party1.date — signing date for Party 1 in YYYY-MM-DD"),
+        (p2.get("printName"), "party2.printName — full legal name of Party 2's signatory"),
+        (p2.get("title"), "party2.title — job title of Party 2's signatory"),
+        (p2.get("company"), "party2.company — legal entity name of Party 2"),
+        (p2.get("noticeAddress"), "party2.noticeAddress — contact address for Party 2"),
+        (p2.get("date"), "party2.date — signing date for Party 2 in YYYY-MM-DD"),
+    ]
+    return [desc for value, desc in checks if not value]
 
 
 class PartyInfoUpdate(BaseModel):
@@ -78,8 +96,37 @@ async def chat(request: ChatRequest) -> NDAFieldsUpdate:
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY not configured")
 
-    filled = {k: v for k, v in request.current_fields.items() if v}
-    context = f"\n\nCurrent document state:\n{json.dumps(filled, indent=2) if filled else 'No fields filled yet'}"
+    unfilled = _unfilled_fields(request.current_fields)
+    is_initial = len(request.messages) == 0
+
+    if is_initial:
+        # No user message yet — greet and ask about the first missing field.
+        directive = (
+            f"\n\nNEXT ACTION: Greet the user warmly and ask for: {unfilled[0]}"
+            if unfilled else
+            "\n\nNEXT ACTION: Greet the user and tell them their NDA is already complete."
+        )
+    elif not unfilled:
+        # Every field was already filled before this turn.
+        directive = "\n\nNEXT ACTION: The document was already complete — confirm and tell the user to click \"Download PDF\"."
+    elif len(unfilled) == 1:
+        # The user's message is providing the last required field.
+        directive = (
+            f"\n\nThe user's message is providing: {unfilled[0]}\n"
+            f"NEXT ACTION: Confirm their answer and tell them the NDA is now complete — they can click \"Download PDF\"."
+        )
+    else:
+        # The user's message is providing unfilled[0]; ask about unfilled[1] next.
+        directive = (
+            f"\n\nThe user's message is providing: {unfilled[0]}\n"
+            f"NEXT ACTION: Confirm their answer and then ask for: {unfilled[1]}"
+        )
+
+    context = (
+        f"\n\nCurrent document state (empty string or null means unfilled):\n"
+        f"{json.dumps(request.current_fields, indent=2)}"
+        f"{directive}"
+    )
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT + context}]
     messages.extend({"role": m.role, "content": m.content} for m in request.messages)
