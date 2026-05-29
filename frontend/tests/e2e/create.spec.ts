@@ -12,9 +12,9 @@ test.describe('Create page (/create)', () => {
     await expect(page.getByRole('button', { name: /Download PDF/i })).toBeVisible();
   });
 
-  test('back link returns to landing page', async ({ page }) => {
+  test('back link returns to dashboard', async ({ page }) => {
     await page.getByRole('link', { name: /Prelegal/i }).click();
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/dashboard');
   });
 
   test('form panel is visible on the left', async ({ page }) => {

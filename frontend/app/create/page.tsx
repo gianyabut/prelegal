@@ -25,7 +25,7 @@ export default function CreatePage() {
         className="flex items-center justify-between px-8 py-4 shrink-0 print:hidden"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
       >
-        <Link href="/" className="header-nav-link font-display font-light text-base tracking-[0.14em] uppercase">
+        <Link href="/dashboard" className="header-nav-link font-display font-light text-base tracking-[0.14em] uppercase">
           ← Prelegal
         </Link>
 
